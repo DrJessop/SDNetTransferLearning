@@ -51,7 +51,7 @@ class FAnatomy(nn.Module):
 
 
 class FModality(nn.Module):
-    def __init__(self, device, n_a, n_z):
+    def __init__(self, device, n_a, n_z, shape):
         super(FModality, self).__init__()
 
         self.device = device
@@ -60,7 +60,9 @@ class FModality(nn.Module):
             ConvolutionalBlock(in_channels=16, out_channels=16, stride=2).to(self.device)
         )
 
-        in_features = 1600
+        shape = (n_a + 1, *shape)
+        in_features = self._get_conv_out(shape)
+
         out_lin = 32
         out_features = n_z
 
@@ -73,6 +75,11 @@ class FModality(nn.Module):
         # Get mean and log(std) to sample z from
         self.dense_block_mean = nn.Linear(in_features=out_lin, out_features=out_features).to(self.device)
         self.dense_block_log_sigma = nn.Linear(in_features=out_lin, out_features=out_features).to(self.device)
+
+    def _get_conv_out(self, shape):
+        with torch.no_grad():
+            o = self.conv_blocks(torch.zeros(1, *shape).to(self.device)).view(1, -1)
+            return o.shape[1]
 
     def forward(self, data):
         data = self.conv_blocks(data).view(data.shape[0], -1)
@@ -88,11 +95,11 @@ class FModality(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, n_a, n_z, device, binary_threshold):
+    def __init__(self, n_a, n_z, device, shape, binary_threshold):
         super(Encoder, self).__init__()
         self.device = device
         self.anat = FAnatomy(feature_maps=1, n_a=n_a, binary_threshold=binary_threshold, device=self.device)
-        self.mod = FModality(device=self.device, n_a=n_a, n_z=n_z)
+        self.mod = FModality(device=self.device, n_a=n_a, n_z=n_z, shape=shape)
 
     def forward(self, image):
         anatomy = self.anat(image)
@@ -163,9 +170,9 @@ class Decoder(nn.Module):
 
 
 class SDNet(nn.Module):
-    def __init__(self, n_a, n_z, device, binary_threshold=False):
+    def __init__(self, n_a, n_z, device, shape, binary_threshold=False):
         super(SDNet, self).__init__()
-        self.encoder = Encoder(n_a, n_z, device, binary_threshold)
+        self.encoder = Encoder(n_a, n_z, device, shape, binary_threshold)
         self.decoder = Decoder(n_a, n_z, device)
         self.device = device
         self.bin = binary_threshold
