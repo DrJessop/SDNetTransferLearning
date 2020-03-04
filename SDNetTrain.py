@@ -29,14 +29,13 @@ def normalize(im):
 
 
 class MRI(Dataset):
-    def __init__(self, device, dir, desired_height=160, desired_width=160, aug=False):
+    def __init__(self, device, dir, desired_height, desired_width):
         super(MRI, self).__init__()
         self.dir = dir
         self.images = os.listdir(self.dir)
         self.desired_height = desired_height
         self.desired_width = desired_width
         self.device = device
-        self.aug = aug
 
     def __len__(self):
         return len(self.images)
@@ -49,9 +48,6 @@ class MRI(Dataset):
         im = im[:, (shape[1] - self.desired_height) // 2:(shape[1] - self.desired_height) // 2 + self.desired_height]
         im = im[:, :,  (shape[2] - self.desired_width) // 2:(shape[2] - self.desired_width) // 2 + self.desired_width]
         normalize(im)
-        if self.aug:
-            sample = torch.Tensor(np.random.choice(shape[0], 9, replace=False)).long()
-            im[sample] = im[sample].transpose(1, 2)
         return im.to(self.device)
 
 
@@ -76,26 +72,12 @@ def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, m
 
     reconstruction_loss += mae.item()
 
-    sample_z = modality_distribution.sample()
-    dec_im = model.decoder(anatomy, sample_z)
-    input_im = torch.cat((dec_im, anatomy), dim=1)
-    modality_factor_reconstruct = model.encoder.mod(input_im)
-
-    z_reconstruction_error = torch.mean(torch.abs(sample_z - modality_factor_reconstruct.mean))
-
     if train_mode:
-        (kl_loss_weight*kl_div + mae + z_reconstruction_error).backward()
+        (kl_loss_weight*kl_div + mae).backward()
         optimizer.step()
         optimizer.zero_grad()
-    num_batches += 1
-    return kl_loss, reconstruction_loss, num_batches
 
-
-def display_histogram(numpy_image):
-    histogram = np.histogram(numpy_image)
-    histogram = histogram[1][:-1], histogram[0]
-    plt.bar(*histogram)
-    plt.show()
+    return kl_loss, reconstruction_loss, num_batches + 1
 
 
 def test_slice(test_im_id, images, sdnet):
@@ -173,7 +155,6 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None):
 
     optimizer = Adam(sdnet.parameters(), lr=1e-4)
     train_data, val_data = data
-    num_plots_on_screen = 0
 
     modality_prior = Normal(loc=0.0, scale=1.0)
     for epoch in t:
@@ -210,10 +191,6 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None):
         if show_every is not None:
             if epoch % show_every == 0:
                 test_slice(test_im_id=np.random.randint(0, len(val)), images=val, sdnet=sdnet)
-                num_plots_on_screen += 1
-            if num_plots_on_screen == 5:
-                plt.clf()
-                num_plots_on_screen = 0
 
         t.set_description("KL loss (train: {}, eval: {}), ".format(kl_loss, kl_loss_eval) +
                           "Rec loss (train: {}, eval: {}".format(reconstruction_loss, reconstruction_loss_eval))
@@ -222,7 +199,7 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None):
 
 
 def collate_function(batch):
-    im = torch.empty(0, 1, 160, 160).to(gpu).float()
+    im = torch.empty(0, 1, HEIGHT, WIDTH).to(gpu).float()
     for el in batch:
         el_reshaped = el.view(el.shape[0], 1, el.shape[1], el.shape[2]).float()
         im = torch.cat((im, el_reshaped))
@@ -241,9 +218,9 @@ if __name__ == "__main__":
     binary_threshold = True
     training = True
     save_model = True
-    kgh = True
+    kgh = False
     scratch = True
-    aug = False
+    HEIGHT, WIDTH = 160, 160
 
     if kgh:
         image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/t2_full/KGH"
@@ -251,7 +228,7 @@ if __name__ == "__main__":
             sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/KGH/sdnet_bin.pt"
         else:
             sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/KGH/sdnet.pt"
-        epochs = 100
+        epochs = 200
     else:
         image_dir = "/home/andrewg/PycharmProjects/assignments/resampled/t2"
         if binary_threshold:
@@ -260,13 +237,13 @@ if __name__ == "__main__":
             sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/ProstateX/sdnet.pt"
         epochs = 200
 
-    p_images = MRI(device=gpu, dir=image_dir, aug=aug)
+    p_images = MRI(device=gpu, dir=image_dir, desired_height=HEIGHT, desired_width=WIDTH)
     n_train = int(0.8*len(p_images))
     train, val = random_split(p_images, lengths=(n_train, len(p_images) - n_train))
     train_loader = DataLoader(train, batch_size=batch_size, collate_fn=collate_function, shuffle=True)
     val_loader = DataLoader(val, batch_size=batch_size, collate_fn=collate_function, shuffle=True)
 
-    sdnet = SDNet(n_a=4, n_z=8, device=gpu, binary_threshold=binary_threshold)
+    sdnet = SDNet(n_a=4, n_z=8, device=gpu, shape=(HEIGHT, WIDTH), binary_threshold=binary_threshold)
 
     if training:
         if not scratch:  # If I would like a pre-trained model loaded in
