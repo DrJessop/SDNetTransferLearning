@@ -63,24 +63,16 @@ def split_slices(image_batch):
 def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z_rec_loss, mean_absolute_error,
                  num_batches, train_mode=True, kl_loss_weight=0.001):
 
-    batch = split_slices(batch)
-    anatomy, reconstruction, modality_distribution = model(batch.float())
+    anatomy, reconstruction, modality_distribution, z = model(batch.float())
 
     kl_div = torch.mean(kl_divergence(modality_distribution, prior))
-
     kl_loss += kl_div.item()
 
     mae = mean_absolute_error(batch.float(), reconstruction)
-
     reconstruction_loss += mae.item()
 
-    modality_sample = modality_distribution.sample()
-
-    _, _, modality_distribution2 = model(reconstruction)
-    modality_sample2 = modality_distribution2.sample()
-
-    z_rec_mae = mean_absolute_error(modality_sample, modality_sample2)
-
+    _, _, _, z2 = model(reconstruction)
+    z_rec_mae = mean_absolute_error(z, z2)
     z_rec_loss += z_rec_mae.item()
 
     if train_mode:
@@ -105,7 +97,7 @@ def test_slice(test_im_id, images, sdnet):
 
         test_im = test_im.float()
 
-        anatomy, reconstruction, _ = sdnet(test_im.float())
+        anatomy, reconstruction, _, _ = sdnet(test_im.float())
 
         plt.figure()
         num_cols = anatomy.shape[1] // 2
@@ -368,7 +360,7 @@ if __name__ == "__main__":
         if not scratch:  # If I would like a pre-trained model loaded in
             sdnet.load_state_dict(torch.load(sdnet_file, map_location=gpu))
 
-        train_sdnet((train_loader, val_loader), sdnet, epochs=epochs, kl_loss_weight=0.5, show_every=10,
+        train_sdnet((train_loader, val_loader), sdnet, epochs=epochs, kl_loss_weight=0.01, show_every=10,
                     save_model=save_model)
     else:
         sdnet.load_state_dict(torch.load(sdnet_file, map_location=gpu))
