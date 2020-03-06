@@ -50,13 +50,6 @@ class Brain(Dataset):
         return im.unsqueeze(0).to(self.device)
 
 
-def split_slices(image_batch):
-    if len(image_batch.shape) == 4:
-        image_batch = image_batch.unsqueeze(2)
-    num_im1, num_im2, num_slices, height, width = image_batch.shape
-    return image_batch.view(num_im1*num_im2*num_slices, 1, height, width)
-
-
 def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z_rec_loss, mean_absolute_error,
                  train_mode=True, kl_loss_weight=0.001):
 
@@ -73,7 +66,7 @@ def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z
     z_rec_loss += z_rec_mae.item()
 
     if train_mode:
-        (kl_loss_weight*kl_div + mae + z_rec_loss).backward()
+        (kl_loss_weight*kl_div + mae + z_rec_mae).backward()
         optimizer.step()
         optimizer.zero_grad()
 
@@ -175,10 +168,10 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None, save_m
         model.train()
         for batch in train_data:
             kl_loss, reconstruction_loss, z_rec_loss = compute_loss(model, optimizer, batch, kl_loss,
-                                                                                 modality_prior, reconstruction_loss,
-                                                                                 z_rec_loss, mean_absolute_error,
-                                                                                 train_mode=True,
-                                                                                 kl_loss_weight=kl_loss_weight)
+                                                                    modality_prior, reconstruction_loss,
+                                                                    z_rec_loss, mean_absolute_error,
+                                                                    train_mode=True,
+                                                                    kl_loss_weight=kl_loss_weight)
 
         kl_loss = kl_loss/len(train_data)
         reconstruction_loss = reconstruction_loss/len(train_data)
@@ -192,12 +185,12 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None, save_m
             model.eval()
             for batch in val_data:
                 kl_loss_eval, reconstruction_loss_eval, z_rec_loss_eval = compute_loss(model, optimizer,
-                                                                                                    batch, kl_loss_eval,
-                                                                                                    modality_prior,
-                                                                                                    reconstruction_loss_eval,
-                                                                                                    z_rec_loss_eval,
-                                                                                                    mean_absolute_error,
-                                                                                                    train_mode=False)
+                                                                                       batch, kl_loss_eval,
+                                                                                       modality_prior,
+                                                                                       reconstruction_loss_eval,
+                                                                                       z_rec_loss_eval,
+                                                                                       mean_absolute_error,
+                                                                                       train_mode=False)
         kl_loss_eval = kl_loss_eval/len(val_data)
         reconstruction_loss_eval = reconstruction_loss_eval/len(val_data)
         z_rec_loss_eval = z_rec_loss_eval/len(val_data)
@@ -321,7 +314,6 @@ def fetch_data(dir):
         slice = slice.reshape(SLICE, 1, *slice.shape[1:])
         data = torch.cat((data, slice), dim=0)
     return data
-
 
 
 if __name__ == "__main__":
