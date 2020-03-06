@@ -306,7 +306,6 @@ def convert_image(sdnet, convert="tot2"):
 
 def fetch_data(dir):
     os.chdir(dir)
-    SLICE, HEIGHT, WIDTH = 20, 192, 192
     data = torch.empty(0, 1, HEIGHT, WIDTH)
     for idx, f in enumerate(os.listdir()):
         if idx % 50 == 0:
@@ -338,7 +337,7 @@ if __name__ == "__main__":
     training = True
     save_model = True
     scratch = True
-    SLICES, HEIGHT, WIDTH = (20, 192, 192)
+    SLICE, HEIGHT, WIDTH = (20, 192, 192)
 
     epochs = 200
     image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/"
