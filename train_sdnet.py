@@ -4,7 +4,7 @@ from easydict import EasyDict
 from models.SDNet import SDNet
 import torch
 from torch.utils.data import DataLoader, random_split
-from utils.SDNetTrain import train_sdnet
+from sdnet_train.SDNetTrain import train
 
 
 class GetConfigurations:
@@ -34,11 +34,10 @@ if __name__ == "__main__":
         sdnet.load_state_dict(torch.load(conf.model_src))
 
     n_train = int(conf.split_portion * len(p_images))
-    train, val = random_split(p_images, lengths=(n_train, len(p_images) - n_train))
-    train = DataLoader(train, batch_size=conf.batch_size, num_workers=conf.num_workers)
-    val = DataLoader(val, batch_size=conf.batch_size, num_workers=conf.num_workers)
+    train_set, val_set = random_split(p_images, lengths=(n_train, len(p_images) - n_train))
+    train_loader = DataLoader(train_set, batch_size=conf.batch_size, num_workers=conf.num_workers)
+    val_loader = DataLoader(val_set, batch_size=conf.batch_size, num_workers=conf.num_workers)
+    data = train_loader, val_loader
 
-    train_sdnet(p_images, sdnet, conf.epochs, conf.model_dest, conf.kl_weight, conf.show_every, conf.save_model,
-                conf.lr)
-
+    train(data, sdnet, conf.epochs, conf.model_dest, conf.kl_weight, conf.show_every, conf.save_model, conf.lr)
 
