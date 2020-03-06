@@ -210,9 +210,9 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None, save_m
                      z_rec_loss_eval, epoch)
 
         if show_every is not None:
-            # if save_model and reconstruction_loss_eval < best_rec_loss:
-                # torch.save(sdnet.state_dict(), sdnet_file)
-                #  best_rec_loss = reconstruction_loss_eval
+            if save_model and reconstruction_loss_eval < best_rec_loss:
+                torch.save(sdnet.state_dict(), sdnet_file)
+                best_rec_loss = reconstruction_loss_eval
             if epoch % show_every == 0:
                 test_slice(test_im_id=np.random.randint(0, len(val)), images=val, sdnet=sdnet)
 
