@@ -4,6 +4,8 @@ import torch.nn as nn
 from torch.optim import Adam
 from tqdm import trange
 import visdom
+import matplotlib as mpl
+mpl.use('TkAgg')  # or whatever other backend that you want
 import matplotlib.pyplot as plt
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
@@ -114,7 +116,7 @@ def viz_plot(viz, reconstruction_loss, kl_loss, z_rec_loss, reconstruction_loss_
                  update="append")
 
 
-def train_sdnet(data, model, epochs, sdnet_file, kl_loss_weight=0.1, show_every=None, save_model=False, lr=0.0001):
+def train(data, model, epochs, sdnet_file, kl_loss_weight=0.1, show_every=None, save_model=False, lr=0.0001):
 
     mean_absolute_error = nn.L1Loss(reduction="mean")
 
@@ -181,9 +183,9 @@ def train_sdnet(data, model, epochs, sdnet_file, kl_loss_weight=0.1, show_every=
             if epoch % show_every == 0:
                 test_slice(test_im_id=np.random.randint(0, len(val_data)), images=val_data, sdnet=model)
 
-        t.set_description("KL loss (utils: {}, eval: {}), ".format(kl_loss, kl_loss_eval) +
-                          "Rec loss (utils: {}, eval: {}), ".format(reconstruction_loss, reconstruction_loss_eval) +
-                          "Zrec loss (utils: {}, eval: {})".format(z_rec_loss, z_rec_loss_eval))
+        t.set_description("KL loss (sdnet_train: {}, eval: {}), ".format(kl_loss, kl_loss_eval) +
+                          "Rec loss (sdnet_train: {}, eval: {}), ".format(reconstruction_loss, reconstruction_loss_eval) +
+                          "Zrec loss (sdnet_train: {}, eval: {})".format(z_rec_loss, z_rec_loss_eval))
 
     return model
 
