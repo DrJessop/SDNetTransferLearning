@@ -28,11 +28,10 @@ def normalize(im):
 
 
 class Brain(Dataset):
-    def __init__(self, device, dir, desired_slices, desired_height, desired_width):
+    def __init__(self, device, dir, desired_height, desired_width):
         super(Brain, self).__init__()
         self.dir = dir
         self.images = os.listdir(self.dir)
-        self.desired_slices = desired_slices//2
         self.desired_height = desired_height
         self.desired_width = desired_width
         self.device = device
@@ -45,12 +44,10 @@ class Brain(Dataset):
         im = sitk.GetArrayFromImage(im).astype(np.float64)
         im = torch.from_numpy(im)
         shape = im.shape
-        im = im[:, (shape[1] - self.desired_height) // 2:(shape[1] - self.desired_height) // 2 + self.desired_height]
-        im = im[:, :,  (shape[2] - self.desired_width) // 2:(shape[2] - self.desired_width) // 2 + self.desired_width]
+        im = im[(shape[0] - self.desired_height) // 2:(shape[0] - self.desired_height) // 2 + self.desired_height]
+        im = im[:,  (shape[1] - self.desired_width) // 2:(shape[1] - self.desired_width) // 2 + self.desired_width]
         normalize(im)
-        midpoint = im.shape[0] // 2
-        im = im[midpoint - self.desired_slices: midpoint + self.desired_slices]
-        return im.to(self.device)
+        return im.unsqueeze(0).to(self.device)
 
 
 def split_slices(image_batch):
@@ -226,12 +223,14 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None, save_m
     return model
 
 
+'''
 def collate_function(batch):
     im = torch.empty(0, 1, HEIGHT, WIDTH).to(gpu).float()
     for el in batch:
         el_reshaped = el.view(el.shape[0], 1, el.shape[1], el.shape[2]).float()
         im = torch.cat((im, el_reshaped))
     return im
+'''
 
 
 def convert_image(sdnet, convert="tot2"):
@@ -322,37 +321,20 @@ if __name__ == "__main__":
     save_model = True
     scratch = True
     SLICES, HEIGHT, WIDTH = (20, 192, 192)
-    train_on = "combined"
 
     epochs = 200
-    if train_on == "T1":
-        image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/T1_brain"
-        if binary_threshold:
-            sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/T1/sdnet_bin.pt"
-        else:
-            sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/T1/sdnet.pt"
-
-    elif train_on == "T2":
-        image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/T2_brain"
-        if binary_threshold:
-            sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/T2/sdnet_bin.pt"
-        else:
-            sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/T2/sdnet.pt"
-    elif train_on == "combined":
-        image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/combined"
-        if binary_threshold:
-            sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/combined/sdnet_bin_T1T2.pt"
-        else:
-            sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/combined/sdnet.pt"
+    image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/combined_slices_separate"
+    if binary_threshold:
+        sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/combined/sdnet_bin_T1T2.pt"
     else:
-        raise FileNotFoundError
+        sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/combined/sdnet.pt"
 
-    p_images = Brain(device=gpu, dir=image_dir, desired_slices=SLICES, desired_height=HEIGHT,
+    p_images = Brain(device=gpu, dir=image_dir, desired_height=HEIGHT,
                      desired_width=WIDTH)
     n_train = int(0.8*len(p_images))
     train, val = random_split(p_images, lengths=(n_train, len(p_images) - n_train))
-    train_loader = DataLoader(train, batch_size=batch_size, collate_fn=collate_function, shuffle=True)
-    val_loader = DataLoader(val, batch_size=batch_size, collate_fn=collate_function, shuffle=True)
+    train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val, batch_size=batch_size, shuffle=True)
 
     sdnet = SDNet(n_a=4, n_z=8, device=gpu, shape=(HEIGHT, WIDTH), binary_threshold=binary_threshold)
 
@@ -364,5 +346,5 @@ if __name__ == "__main__":
                     save_model=save_model)
     else:
         sdnet.load_state_dict(torch.load(sdnet_file, map_location=gpu))
-        # test_slice(test_im_id=np.random.randint(0, len(p_images)), images=p_images, sdnet=sdnet)
+        test_slice(test_im_id=np.random.randint(0, len(p_images)), images=p_images, sdnet=sdnet)
         convert_image(sdnet, convert="tot2")
