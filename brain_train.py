@@ -246,7 +246,7 @@ def convert_image(sdnet, convert="tot2"):
         normalize(t1)
         midpoint = t1.shape[0] // 2
         t1 = t1[midpoint - SLICES//2: midpoint + SLICES//2]
-        t1 = t1[t1.shape[0] // 2].unsqueeze(0).unsqueeze(0).to(gpu).float()
+        t1 = t1[t1.shape[0] // 2].unsqueeze(0).unsqueeze(0).to(device).float()
 
         t2 = sitk.ReadImage(t2)
         t2 = sitk.GetArrayFromImage(t2).astype(np.float64)
@@ -257,13 +257,13 @@ def convert_image(sdnet, convert="tot2"):
         normalize(t2)
         midpoint = t2.shape[0] // 2
         t2 = t2[midpoint - SLICES // 2: midpoint + SLICES // 2]
-        t2 = t2[t2.shape[0] // 2].unsqueeze(0).unsqueeze(0).to(gpu).float()
+        t2 = t2[t2.shape[0] // 2].unsqueeze(0).unsqueeze(0).to(device).float()
 
         if convert == "tot2":
             anatomy, _, _ = sdnet(t1)
             _, _, modality_distribution = sdnet(t2)
             # sample = modality_distribution.sample()
-            sample = torch.rand_like(torch.zeros(1, 8)).to(gpu).float()
+            sample = torch.rand_like(torch.zeros(1, 8)).to(device).float()
             reconstruction = sdnet.decoder(anatomy, sample)
 
             plt.figure()
@@ -304,7 +304,24 @@ def convert_image(sdnet, convert="tot2"):
     return
 
 
-
+def fetch_data(dir):
+    os.chdir(dir)
+    SLICE, HEIGHT, WIDTH = 20, 192, 192
+    data = torch.empty(0, 1, HEIGHT, WIDTH)
+    for idx, f in enumerate(os.listdir()):
+        if idx % 50 == 0:
+            print(idx)
+        slice = sitk.ReadImage(f)
+        x, y, z = slice.GetSize()
+        slice = slice[(x - HEIGHT)//2:(x - HEIGHT)//2 + HEIGHT]
+        slice = slice[:, (y - WIDTH) // 2:(y - WIDTH) // 2 + WIDTH]
+        mid = z // 2
+        slice = slice[:, :, mid - SLICE//2:mid + SLICE//2]
+        slice = sitk.GetArrayFromImage(slice).astype(np.float32)
+        slice = torch.from_numpy(slice)
+        slice = slice.reshape(SLICE, 1, *slice.shape[1:])
+        data = torch.cat((data, slice), dim=0)
+    return data
 
 
 
@@ -315,37 +332,45 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-    gpu = torch.device("cuda:1")
+    device = torch.device("cuda:1")
     batch_size = 40
     binary_threshold = True
     training = True
     save_model = True
     scratch = True
-    HEIGHT, WIDTH = (192, 192)
+    SLICES, HEIGHT, WIDTH = (20, 192, 192)
 
     epochs = 200
-    image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/combined_slices_separate"
+    image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/"
     if binary_threshold:
         sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/combined/sdnet_bin_T1T2.pt"
     else:
         sdnet_file = "/home/andrewg/PycharmProjects/assignments/SDNetModels/Brain/combined/sdnet.pt"
 
-    p_images = Brain(device=gpu, dir=image_dir, desired_height=HEIGHT,
-                     desired_width=WIDTH)
-    n_train = int(0.8*len(p_images))
-    train, val = random_split(p_images, lengths=(n_train, len(p_images) - n_train))
+    if "data.pt" not in os.listdir(image_dir):
+        data = fetch_data("{}/{}".format(image_dir, "combined"))
+        torch.save(data, "{}/{}".format(image_dir, "data.pt"))
+    else:
+        data = torch.load("{}/{}".format(image_dir, "data.pt"))
+
+    data = data.to(device)
+    for idx in range(data.shape[0]):
+        normalize(data[idx])
+
+    n_train = int(0.8*data.shape[0])
+    train, val = random_split(data, lengths=(n_train, data.shape[0] - n_train))
     train_loader = DataLoader(train, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val, batch_size=batch_size, shuffle=True)
 
-    sdnet = SDNet(n_a=4, n_z=8, device=gpu, shape=(HEIGHT, WIDTH), binary_threshold=binary_threshold)
+    sdnet = SDNet(n_a=4, n_z=8, device=device, shape=(HEIGHT, WIDTH), binary_threshold=binary_threshold)
 
     if training:
         if not scratch:  # If I would like a pre-trained model loaded in
-            sdnet.load_state_dict(torch.load(sdnet_file, map_location=gpu))
+            sdnet.load_state_dict(torch.load(sdnet_file, map_location=device))
 
         train_sdnet((train_loader, val_loader), sdnet, epochs=epochs, kl_loss_weight=0.01, show_every=10,
                     save_model=save_model)
     else:
-        sdnet.load_state_dict(torch.load(sdnet_file, map_location=gpu))
-        test_slice(test_im_id=np.random.randint(0, len(p_images)), images=p_images, sdnet=sdnet)
+        sdnet.load_state_dict(torch.load(sdnet_file, map_location=device))
+        test_slice(test_im_id=np.random.randint(0, data.shape[0]), images=data, sdnet=sdnet)
         convert_image(sdnet, convert="tot2")
