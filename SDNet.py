@@ -128,7 +128,7 @@ class FiLM(nn.Module):
 
         return gamma, beta
 
-
+'''
 class FiLMLayer(nn.Module):
     def __init__(self, n_a, n_z, device):
         super(FiLMLayer, self).__init__()
@@ -150,15 +150,69 @@ class FiLMLayer(nn.Module):
         residual = nn.LeakyReLU(negative_slope=0.3)(residual)
 
         return data + residual
+'''
+
+
+class FilmLayer(nn.Module):
+    def __init__(self, input_channels, output_channels, kernel_size, stride, padding, num_modulation_factors):
+        super(FilmLayer, self).__init__()
+
+        self.output_channels = output_channels
+        self.num_modulation_factors = num_modulation_factors
+
+        self.conv1 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.lrelu1 = nn.LeakyReLU(negative_slope=0.3, inplace=True)
+
+        self.conv2 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.lrelu2 = nn.LeakyReLU(negative_slope=0.3, inplace=True)
+
+        self.film_params = nn.Sequential(nn.Linear(num_modulation_factors, 2 * output_channels),
+                                         nn.LeakyReLU(negative_slope=0.3, inplace=True),
+                                         nn.Linear(2 * output_channels, 2 * output_channels))
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0.0, 0.01)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x, modality_factor):
+        gamma_beta = self.film_params(modality_factor)
+        gamma = gamma_beta[:, :self.output_channels]       # (B, C)
+        beta = gamma_beta[:, self.output_channels:]        # (B, C)
+
+        output = self.conv1(x)
+        output = self.lrelu1(output)
+
+        residual = self.conv2(output)
+
+        gamma = torch.unsqueeze(gamma, dim=-1)
+        gamma = torch.unsqueeze(gamma, dim=-1)     # (B, C, H, W)
+        beta = torch.unsqueeze(beta, dim=-1)
+        beta = torch.unsqueeze(beta, dim=-1)      # (B, C, H, W)
+
+        residual = residual*gamma + beta
+        residual = self.lrelu2(residual)
+
+        return output + residual
 
 
 class Decoder(nn.Module):
     def __init__(self, n_a, n_z, device):
         super(Decoder, self).__init__()
-        self.film1 = FiLMLayer(n_a, n_z, device)
-        self.film2 = FiLMLayer(n_a, n_z, device)
-        self.film3 = FiLMLayer(n_a, n_z, device)
-        self.final_block = nn.Conv2d(in_channels=n_a, out_channels=1, kernel_size=(3, 3), padding=1).to(device)
+        self.film1 = FilmLayer(input_channels=n_a, output_channels=n_a, kernel_size=3, stride=1, padding=1,
+                               num_modulation_factors=n_z).to(device)
+        self.film2 = FilmLayer(input_channels=n_a, output_channels=n_a, kernel_size=3, stride=1, padding=1,
+                               num_modulation_factors=n_z).to(device)
+        self.film3 = FilmLayer(input_channels=n_a, output_channels=n_a, kernel_size=3, stride=1, padding=1,
+                               num_modulation_factors=n_z).to(device)
+        self.final_block = nn.Conv2d(in_channels=n_a, out_channels=1, kernel_size=3, padding=1).to(device)
 
     def forward(self, data, z_vector):
         data = self.film1(data, z_vector)
@@ -179,6 +233,7 @@ class SDNet(nn.Module):
 
     def forward(self, image):
         anatomical_factor, modality_distribution = self.encoder(image)
-        reconstruction = self.decoder(anatomical_factor, modality_distribution.rsample())
+        z = modality_distribution.rsample()
+        reconstruction = self.decoder(anatomical_factor, z)
 
-        return anatomical_factor, reconstruction, modality_distribution
+        return anatomical_factor, reconstruction, modality_distribution, z
