@@ -245,7 +245,7 @@ def convert_image(sdnet, convert="tot2"):
         t1 = t1[:, :, (shape[2] - WIDTH) // 2:(shape[2] - WIDTH) // 2 + WIDTH]
         normalize(t1)
         midpoint = t1.shape[0] // 2
-        t1 = t1[midpoint - SLICES//2: midpoint + SLICES//2]
+        t1 = t1[midpoint - SLICE//2: midpoint + SLICE//2]
         t1 = t1[t1.shape[0] // 2].unsqueeze(0).unsqueeze(0).to(device).float()
 
         t2 = sitk.ReadImage(t2)
@@ -256,7 +256,7 @@ def convert_image(sdnet, convert="tot2"):
         t2 = t2[:, :, (shape[2] - WIDTH) // 2:(shape[2] - WIDTH) // 2 + WIDTH]
         normalize(t2)
         midpoint = t2.shape[0] // 2
-        t2 = t2[midpoint - SLICES // 2: midpoint + SLICES // 2]
+        t2 = t2[midpoint - SLICE // 2: midpoint + SLICE // 2]
         t2 = t2[t2.shape[0] // 2].unsqueeze(0).unsqueeze(0).to(device).float()
 
         if convert == "tot2":
