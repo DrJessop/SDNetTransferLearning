@@ -58,7 +58,7 @@ def split_slices(image_batch):
 
 
 def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z_rec_loss, mean_absolute_error,
-                 num_batches, train_mode=True, kl_loss_weight=0.001):
+                 train_mode=True, kl_loss_weight=0.001):
 
     anatomy, reconstruction, modality_distribution, z = model(batch.float())
 
@@ -77,7 +77,7 @@ def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z
         optimizer.step()
         optimizer.zero_grad()
 
-    return kl_loss, reconstruction_loss, z_rec_loss, num_batches + 1
+    return kl_loss, reconstruction_loss, z_rec_loss
 
 
 def test_slice(test_im_id, images, sdnet):
@@ -171,39 +171,36 @@ def train_sdnet(data, model, epochs, kl_loss_weight=0.1, show_every=None, save_m
         kl_loss = 0
         reconstruction_loss = 0
         z_rec_loss = 0
-        num_batches = 0
 
         model.train()
         for batch in train_data:
-            kl_loss, reconstruction_loss, z_rec_loss, num_batches = compute_loss(model, optimizer, batch, kl_loss,
+            kl_loss, reconstruction_loss, z_rec_loss = compute_loss(model, optimizer, batch, kl_loss,
                                                                                  modality_prior, reconstruction_loss,
                                                                                  z_rec_loss, mean_absolute_error,
-                                                                                 num_batches, train_mode=True,
+                                                                                 train_mode=True,
                                                                                  kl_loss_weight=kl_loss_weight)
 
-        kl_loss = kl_loss/num_batches
-        reconstruction_loss = reconstruction_loss/num_batches
-        z_rec_loss = z_rec_loss/num_batches
+        kl_loss = kl_loss/len(train_data)
+        reconstruction_loss = reconstruction_loss/len(train_data)
+        z_rec_loss = z_rec_loss/len(train_data)
 
         kl_loss_eval = 0
         reconstruction_loss_eval = 0
         z_rec_loss_eval = 0
-        num_batches = 0
 
         with torch.no_grad():
             model.eval()
             for batch in val_data:
-                kl_loss_eval, reconstruction_loss_eval, z_rec_loss_eval, num_batches = compute_loss(model, optimizer,
+                kl_loss_eval, reconstruction_loss_eval, z_rec_loss_eval = compute_loss(model, optimizer,
                                                                                                     batch, kl_loss_eval,
                                                                                                     modality_prior,
                                                                                                     reconstruction_loss_eval,
                                                                                                     z_rec_loss_eval,
                                                                                                     mean_absolute_error,
-                                                                                                    num_batches,
                                                                                                     train_mode=False)
-        kl_loss_eval = kl_loss_eval/num_batches
-        reconstruction_loss_eval = reconstruction_loss_eval/num_batches
-        z_rec_loss_eval = z_rec_loss_eval/num_batches
+        kl_loss_eval = kl_loss_eval/len(val_data)
+        reconstruction_loss_eval = reconstruction_loss_eval/len(val_data)
+        z_rec_loss_eval = z_rec_loss_eval/len(val_data)
 
         if visualize:
             viz_plot(viz, reconstruction_loss, kl_loss, z_rec_loss, reconstruction_loss_eval, kl_loss_eval,
@@ -315,12 +312,12 @@ if __name__ == "__main__":
         torch.cuda.manual_seed_all(seed)
 
     gpu = torch.device("cuda:1")
-    batch_size = 2
+    batch_size = 40
     binary_threshold = True
     training = True
     save_model = True
     scratch = True
-    SLICES, HEIGHT, WIDTH = (20, 192, 192)
+    HEIGHT, WIDTH = (20, 192, 192)
 
     epochs = 200
     image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/combined_slices_separate"
