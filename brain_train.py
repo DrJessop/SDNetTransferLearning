@@ -304,6 +304,10 @@ def convert_image(sdnet, convert="tot2"):
     return
 
 
+
+
+
+
 if __name__ == "__main__":
 
     seed = 0
@@ -317,7 +321,7 @@ if __name__ == "__main__":
     training = True
     save_model = True
     scratch = True
-    HEIGHT, WIDTH = (20, 192, 192)
+    HEIGHT, WIDTH = (192, 192)
 
     epochs = 200
     image_dir = "/home/andrewg/PycharmProjects/assignments/merged_data/brain/combined_slices_separate"
