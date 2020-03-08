@@ -2,28 +2,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+from torch.distributions import Normal
+from torch.distributions.kl import kl_divergence
 from tqdm import trange
 import visdom
 import matplotlib as mpl
 mpl.use('TkAgg')  # or whatever other backend that you want
 import matplotlib.pyplot as plt
-from torch.distributions import Normal
-from torch.distributions.kl import kl_divergence
-
-
-def normalize(im):
-
-    mins = [im[idx].min() for idx in range(len(im))]
-    maxes = [im[idx].max() for idx in range(len(im))]
-
-    for idx in range(len(im)):
-        min_val = mins[idx]
-        max_val = maxes[idx]
-
-        if min_val == max_val:
-            im[idx] = torch.zeros(im[idx].shape)
-        else:
-            im[idx] = 2*(im[idx] - min_val)/(max_val - min_val) - 1
 
 
 def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z_rec_loss, mean_absolute_error,
@@ -116,7 +101,8 @@ def viz_plot(viz, reconstruction_loss, kl_loss, z_rec_loss, reconstruction_loss_
                  update="append")
 
 
-def train(data, model, epochs, sdnet_file, kl_loss_weight=0.1, show_every=None, save_model=False, lr=0.0001):
+def train(data, model, epochs, sdnet_file, val_images, kl_loss_weight=0.1, show_every=None, save_model=False,
+          lr=0.0001):
 
     mean_absolute_error = nn.L1Loss(reduction="mean")
 
@@ -181,7 +167,7 @@ def train(data, model, epochs, sdnet_file, kl_loss_weight=0.1, show_every=None, 
                 torch.save(model.state_dict(), sdnet_file)
                 best_rec_loss = reconstruction_loss_eval
             if epoch % show_every == 0:
-                test_slice(test_im_id=np.random.randint(0, len(val_data)), images=val_data, sdnet=model)
+                test_slice(test_im_id=np.random.randint(0, len(val_data)), images=val_images, sdnet=model)
 
         t.set_description("KL loss (sdnet_train: {}, eval: {}), ".format(kl_loss, kl_loss_eval) +
                           "Rec loss (sdnet_train: {}, eval: {}), ".format(reconstruction_loss, reconstruction_loss_eval) +
