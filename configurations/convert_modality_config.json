@@ -1,0 +1,15 @@
+{
+  "name": "convert_modality_configuration",
+  "version": "1.0.0",
+  "params": {
+    "model_src": "../pretrained_models/sdnet.pt",
+    "data_3t": "/home/andrewg/PycharmProjects/merged_data/t2_full/ProstateX",
+    "data_1p5t": "/home/andrewg/PycharmProjects/merged_data/t2_full/KGH",
+    "data_dest": "../../merged_data/t2_full/convert_modality_experiment",
+    "shape": [160, 160],
+    "num_a": 4,
+    "num_z": 8,
+    "binary": true,
+    "device": "cuda:1"
+  }
+}
