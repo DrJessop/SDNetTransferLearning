@@ -5,7 +5,7 @@
     "seed": 1,
     "model_src": "",
     "model_dest": "pretrained_models/sdnet.pt",
-    "loader_loc": "loaders/data.pt",
+    "loader_loc": "loaders/sdnet_data.pt",
     "num_a": 4,
     "num_z": 8,
     "epochs": 200,
