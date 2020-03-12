@@ -1,0 +1,23 @@
+{
+  "name": "cnn_config_t2",
+  "version": "1.0.0",
+  "params": {
+    "shape": [3, 64, 64],
+    "num_crops": 20,
+    "num_channels": 1,
+    "seed": 1,
+    "model_src": "",
+    "model_dest": "pretrained_models/cnn_t2.pt",
+    "images_loader": "../merged_data/t2_crops/combined_loader/crop_images.pt",
+    "labels_loader": "../merged_data/t2_crops/combined_loader/crop_labels.pt",
+    "epochs": 200,
+    "batch_size": 10,
+    "lr": 0.0001,
+    "weight_decay": 0.02,
+    "split_portion": 0.8,
+    "device": "cuda:1",
+    "num_workers": 0,
+    "save_model": false,
+    "shuffle": true
+  }
+}

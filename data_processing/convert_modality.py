@@ -46,6 +46,7 @@ def convert():
         path = os.path.join(conf.data_3t, im)
         image3t_sitk = sitk.ReadImage(path)
         image3t = sitk.GetArrayFromImage(image3t_sitk)
+
         image3t = torch.from_numpy(image3t.astype(np.float32)).to(conf.device)
         for idx in range(image3t.shape[0]):
             normalize(image3t[idx])
@@ -62,6 +63,7 @@ def convert():
             reconstruction = sdnet.decoder(anatomy, z).squeeze(1)
 
         reconstruction = reconstruction.cpu().numpy()
+
         reconstruction = sitk.GetImageFromArray(reconstruction)
         reconstruction.CopyInformation(image3t_sitk)
         path = os.path.join(conf.data_dest, im)

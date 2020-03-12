@@ -1,0 +1,9 @@
+{
+  "name": "prepare_bval_loader_config",
+  "version": "1.0.0",
+  "params": {
+    "dir": "../../merged_data/bval_full/combined",
+    "dest": "../../merged_data/bval_full/bval_loader.pt",
+    "shape": [128, 128]
+  }
+}

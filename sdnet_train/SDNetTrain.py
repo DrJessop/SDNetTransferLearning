@@ -108,7 +108,7 @@ def train(data, model, epochs, sdnet_file, val_images, kl_loss_weight=0.1, show_
 
     t = trange(epochs, desc='Training progress...', leave=True)
 
-    best_rec_loss = np.inf
+    lowest_loss = np.inf
 
     try:
         viz = visdom.Visdom(port=8097)
@@ -135,9 +135,9 @@ def train(data, model, epochs, sdnet_file, val_images, kl_loss_weight=0.1, show_
                                                                     train_mode=True,
                                                                     kl_loss_weight=kl_loss_weight)
 
-        kl_loss = kl_loss*kl_loss_weight/len(train_data)
-        reconstruction_loss = reconstruction_loss/len(train_data)
-        z_rec_loss = z_rec_loss/len(train_data)
+        kl_loss /= len(train_data)
+        reconstruction_loss /= len(train_data)
+        z_rec_loss /= len(train_data)
 
         kl_loss_eval = 0
         reconstruction_loss_eval = 0
@@ -153,19 +153,22 @@ def train(data, model, epochs, sdnet_file, val_images, kl_loss_weight=0.1, show_
                                                                                        z_rec_loss_eval,
                                                                                        mean_absolute_error,
                                                                                        train_mode=False)
-        kl_loss_eval = kl_loss_eval*kl_loss_weight/len(val_data)
-        reconstruction_loss_eval = reconstruction_loss_eval/len(val_data)
-        z_rec_loss_eval = z_rec_loss_eval/len(val_data)
+
+        kl_loss_eval /= len(val_data)
+        reconstruction_loss_eval /= len(val_data)
+        z_rec_loss_eval /= len(val_data)
 
         if visualize:
             viz_plot(viz, reconstruction_loss, kl_loss, z_rec_loss, reconstruction_loss_eval, kl_loss_eval,
                      z_rec_loss_eval, epoch)
 
-        total_loss = kl_loss_eval + reconstruction_loss_eval + z_rec_loss_eval
+        total_loss = kl_loss_weight*kl_loss_eval + reconstruction_loss_eval + z_rec_loss_eval
+
+        if save_model and total_loss < lowest_loss:
+            torch.save(model.state_dict(), sdnet_file)
+            lowest_loss = total_loss
+
         if show_every is not None:
-            if save_model and total_loss < best_rec_loss:
-                torch.save(model.state_dict(), sdnet_file)
-                best_rec_loss = reconstruction_loss_eval
             if epoch % show_every == 0:
                 test_slice(test_im_id=np.random.randint(0, len(val_data)), images=val_images, sdnet=model)
 

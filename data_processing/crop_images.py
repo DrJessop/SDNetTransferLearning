@@ -24,7 +24,15 @@ def write_crops():
         else:
             clin_sig = int(int(clin_sig) > 0)
         path = os.path.join(conf.data_src, name) + ".{}".format(conf.extension)
-        im = sitk.ReadImage(path)
+        try:
+            im = sitk.ReadImage(path)
+        except:
+            temp_path = path.rsplit('.', 1)[0].rsplit('_', 1)[0]
+            temp_path = "{}.{}".format(temp_path, conf.extension)
+            try:
+                im = sitk.ReadImage(temp_path)
+            except:
+                continue
         lps = row["lps"].split(',')
         lps = [float(s) for s in lps]
         ijk = im.TransformPhysicalPointToIndex(lps)

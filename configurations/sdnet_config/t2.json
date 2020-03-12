@@ -1,0 +1,25 @@
+{
+  "name": "sdnet_config_t2",
+  "version": "1.0.0",
+  "params": {
+    "seed": 1,
+    "model_src": "",
+    "model_dest": "pretrained_models/sdnet_t2.pt",
+    "loader_loc": "loaders/sdnet_data.pt",
+    "num_a": 4,
+    "num_z": 8,
+    "epochs": 200,
+    "binary": true,
+    "normalize": true,
+    "batch_size": 50,
+    "lr": 0.0001,
+    "kl_weight": 0.01,
+    "split_portion": 0.8,
+    "device": "cuda:1",
+    "shape": [160, 160],
+    "num_workers": 0,
+    "show_every": null,
+    "save_model": true,
+    "shuffle": true
+  }
+}

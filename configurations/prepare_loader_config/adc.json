@@ -1,0 +1,9 @@
+{
+  "name": "prepare_adc_loader_config",
+  "version": "1.0.0",
+  "params": {
+    "dir": "../../merged_data/adc_full/combined",
+    "dest": "../../merged_data/adc_full/adc_loader.pt",
+    "shape": [160, 160]
+  }
+}

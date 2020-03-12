@@ -1,0 +1,12 @@
+{
+  "name": "crop_images_config_adc",
+  "version": "1.0.0",
+  "params": {
+    "data_src": "../../merged_data/adc_full/convert_modality_experiment",
+    "dataframe_src": "../../merged_data/combined.csv",
+    "data_dest": "../../merged_data/adc_crops/combined",
+    "sitk_size": [64, 64, 3],
+    "num_crops": 20,
+    "extension": "nrrd"
+  }
+}

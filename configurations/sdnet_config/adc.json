@@ -1,0 +1,27 @@
+{
+  "name": "sdnet_config_adc",
+  "version": "1.0.0",
+  "params": {
+    "seed": 1,
+    "model_src": "pretrained_models/sdnet_adc.pt",
+    "model_dest": "pretrained_models/sdnet_adc.pt",
+    "loader_loc": "../merged_data/adc_full/adc_loader.pt",
+    "num_a": 4,
+    "num_z": 8,
+    "epochs": 200,
+    "binary": true,
+    "normalize": true,
+    "batch_size": 50,
+    "lr": 0.0001,
+    "kl_weight": 0.1,
+    "split_portion": 0.8,
+    "device": "cuda:1",
+    "shape": [160, 160],
+    "num_workers": 0,
+    "show_every": null,
+    "save_model": true,
+    "shuffle": true,
+    "train": false
+  }
+}
+
