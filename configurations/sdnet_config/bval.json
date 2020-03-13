@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "params": {
     "seed": 1,
-    "model_src": "",
+    "model_src": "pretrained_models/sdnet_bval.pt",
     "model_dest": "pretrained_models/sdnet_bval.pt",
     "loader_loc": "../merged_data/bval_full/bval_loader.pt",
     "num_a": 4,
@@ -21,6 +21,6 @@
     "show_every": null,
     "save_model": true,
     "shuffle": true,
-    "train": true
+    "train": false
   }
 }

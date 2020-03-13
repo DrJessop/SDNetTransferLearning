@@ -1,0 +1,13 @@
+{
+  "name": "crop_images_config_bval",
+  "version": "1.0.0",
+  "params": {
+    "data_src": "../../merged_data/bval_full/convert_modality_experiment",
+    "dataframe_src": "../../merged_data/combined.csv",
+    "data_dest": "../../merged_data/bval_crops/combined",
+    "sitk_size": [32, 32, 3],
+    "num_crops": 20,
+    "angle_increment": 5,
+    "extension": "nrrd"
+  }
+}

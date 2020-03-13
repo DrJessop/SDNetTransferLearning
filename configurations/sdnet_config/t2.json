@@ -20,6 +20,7 @@
     "num_workers": 0,
     "show_every": null,
     "save_model": true,
-    "shuffle": true
+    "shuffle": true,
+    "train": true
   }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "convert_modality_config_bval",
+  "version": "1.0.0",
+  "params": {
+    "model_src": "../pretrained_models/sdnet_bval.pt",
+    "data_3t": "../../merged_data/bval_full/ProstateX",
+    "data_1p5t": "../../merged_data/bval_full/KGH",
+    "data_dest": "../../merged_data/bval_full/convert_modality_experiment",
+    "shape": [128, 128],
+    "num_a": 4,
+    "num_z": 8,
+    "binary": true,
+    "device": "cuda:1"
+  }
+}
