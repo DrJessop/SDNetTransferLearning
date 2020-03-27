@@ -2,9 +2,9 @@
   "name": "crop_images_config_t2",
   "version": "1.0.0",
   "params": {
-    "data_src": "../../merged_data/t2_full/convert_modality_experiment",
+    "data_src": "../../merged_data/t2_full/hist_equalized_t2",
     "dataframe_src": "../../merged_data/combined.csv",
-    "data_dest": "../../merged_data/t2_crops/combined",
+    "data_dest": "../../merged_data/t2_crops/combined_equalized",
     "sitk_size": [64, 64, 3],
     "num_crops": 20,
     "angle_increment": 5,

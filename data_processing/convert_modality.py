@@ -64,6 +64,7 @@ def convert():
 
         reconstruction = reconstruction.cpu().numpy()
 
+
         reconstruction = sitk.GetImageFromArray(reconstruction)
         reconstruction.CopyInformation(image3t_sitk)
         path = os.path.join(conf.data_dest, im)

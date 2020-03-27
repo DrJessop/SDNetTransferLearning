@@ -22,7 +22,7 @@ def write_crops():
         elif clin_sig == "FALSE":
             clin_sig = 0
         else:
-            clin_sig = int(int(clin_sig) > 0)
+            clin_sig = int(int(clin_sig) > 6)
         path = os.path.join(conf.data_src, name) + ".{}".format(conf.extension)
         try:
             im = sitk.ReadImage(path)
@@ -37,8 +37,8 @@ def write_crops():
         lps = [float(s) for s in lps]
         ijk = im.TransformPhysicalPointToIndex(lps)
 
-        max_angle = 2*conf.num_crops
-        angles = [angle for angle in range(0, max_angle, 2)]
+        max_angle = conf.angle_increment*conf.num_crops
+        angles = [angle for angle in range(0, max_angle, conf.angle_increment)]
         file_name = "{}_{}".format(name, clin_sig)
         crops = []
         paths = []

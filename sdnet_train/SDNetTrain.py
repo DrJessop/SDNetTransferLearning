@@ -35,8 +35,22 @@ def compute_loss(model, optimizer, batch, kl_loss, prior, reconstruction_loss, z
 
 
 def test_slice(test_im_id, images, sdnet):
-
+    # import SimpleITK as sitk
+    # from utils.normalize import normalize
     with torch.no_grad():
+
+        # t1_5 = sitk.ReadImage("/home/andrewg/PycharmProjects/merged_data/t2_full/ProstateX/ProstateX-0000.nrrd")
+        # t1_5 = torch.from_numpy(sitk.GetArrayFromImage(t1_5).astype(np.int64))
+        # plt.imshow(t1_5[t1_5.shape[0]//2], cmap="gray")
+        # plt.axis("off")
+        # plt.savefig("/home/andrewg/PycharmProjects/images/1_5t.eps")
+        # for idx in range(len(t1_5)):
+        #     normalize(t1_5[idx])
+
+        # _, _, _, z = sdnet(t1_5.unsqueeze(1).cuda(1).float())
+        # z = z[0].unsqueeze(0)
+        # print(z.shape)
+
         # Plotting the reconstruction of a specific slice
         sdnet.eval()
         test_im = images[test_im_id]
@@ -49,16 +63,26 @@ def test_slice(test_im_id, images, sdnet):
         test_im = test_im.float()
 
         anatomy, reconstruction, _, _ = sdnet(test_im.float())
+        # print(anatomy.shape)
+
+        # reconstruction = sdnet.decoder(anatomy, z)
 
         plt.figure()
-        num_cols = anatomy.shape[1] // 2
-        _, axarr = plt.subplots(2, num_cols)
+        num_rows = 2
+        num_cols = 2
+        _, axarr = plt.subplots(num_rows, num_cols)
 
-        for i in range(2):
+        for i in range(num_rows):
             for j in range(num_cols):
+                if j + num_cols*i == anatomy.shape[1]:
+                    break
                 axarr[i, j].imshow(anatomy[0][j + num_cols*i].detach().cpu().numpy(), cmap="gray")
                 axarr[i, j].set_axis_off()
+
+        # plt.savefig("/home/andrewg/PycharmProjects/images/anat.eps")
+        plt.axis("off")
         plt.show()
+        plt.clf()
 
         reconstruction = reconstruction[0][0].detach().cpu().numpy()
 
@@ -71,7 +95,9 @@ def test_slice(test_im_id, images, sdnet):
         axarr[1].imshow(reconstruction, cmap="gray")
         axarr[0].set_axis_off()
         axarr[1].set_axis_off()
+        # plt.savefig("/home/andrewg/PycharmProjects/images/rec.eps")
         plt.show()
+        # plt.clf()
 
     return
 
@@ -80,25 +106,20 @@ def viz_plot(viz, reconstruction_loss, kl_loss, z_rec_loss, reconstruction_loss_
              epoch):
     if epoch == 1:
         viz.line(X=np.array([epoch]), Y=np.array([reconstruction_loss]), win="loss", name="train_rec_loss")
-        viz.line(X=np.array([epoch]), Y=np.array([kl_loss]), win="loss", name="train_kl_loss")
-        viz.line(X=np.array([epoch]), Y=np.array([z_rec_loss]), win="loss", name="train_zrec_loss")
-        viz.line(X=np.array([epoch]), Y=np.array([reconstruction_loss_eval]), win="loss", name="val_rec_loss")
-        viz.line(X=np.array([epoch]), Y=np.array([kl_loss_eval]), win="loss", name="val_kl_loss")
-        viz.line(X=np.array([epoch]), Y=np.array([z_rec_loss_eval]), win="loss", name="val_zrec_loss")
-
     else:
         viz.line(X=np.array([epoch]), Y=np.array([reconstruction_loss]), win="loss", name="train_rec_loss",
                  update="append")
-        viz.line(X=np.array([epoch]), Y=np.array([kl_loss]), win="loss", name="train_kl_loss",
-                 update="append")
-        viz.line(X=np.array([epoch]), Y=np.array([z_rec_loss]), win="loss", name="train_zrec_loss",
-                 update="append")
-        viz.line(X=np.array([epoch]), Y=np.array([reconstruction_loss_eval]), win="loss", name="val_rec_loss",
-                 update="append")
-        viz.line(X=np.array([epoch]), Y=np.array([kl_loss_eval]), win="loss", name="val_kl_loss",
-                 update="append")
-        viz.line(X=np.array([epoch]), Y=np.array([z_rec_loss_eval]), win="loss", name="val_zrec_loss",
-                 update="append")
+
+    viz.line(X=np.array([epoch]), Y=np.array([kl_loss]), win="loss", name="train_kl_loss",
+             update="append")
+    viz.line(X=np.array([epoch]), Y=np.array([z_rec_loss]), win="loss", name="train_zrec_loss",
+             update="append")
+    viz.line(X=np.array([epoch]), Y=np.array([reconstruction_loss_eval]), win="loss", name="val_rec_loss",
+             update="append")
+    viz.line(X=np.array([epoch]), Y=np.array([kl_loss_eval]), win="loss", name="val_kl_loss",
+             update="append")
+    viz.line(X=np.array([epoch]), Y=np.array([z_rec_loss_eval]), win="loss", name="val_zrec_loss",
+             update="append")
 
 
 def train(data, model, epochs, sdnet_file, val_images, kl_loss_weight=0.1, show_every=None, save_model=False,
@@ -177,4 +198,6 @@ def train(data, model, epochs, sdnet_file, val_images, kl_loss_weight=0.1, show_
                           "Zrec loss (sdnet_train: {}, eval: {})".format(z_rec_loss, z_rec_loss_eval))
 
     return model
+
+
 

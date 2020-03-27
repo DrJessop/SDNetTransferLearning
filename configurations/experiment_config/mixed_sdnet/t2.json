@@ -1,0 +1,12 @@
+{
+  "name": "mixed_sdnet",
+  "version": "1.0.0",
+  "params": {
+    "model_src": "../pretrained_models/cnn_t2.pt",
+    "shape": [3, 64, 64],
+    "num_channels": 1,
+    "test_images": "t2/hold_out_images.pt",
+    "test_labels": "t2/hold_out_labels.pt",
+    "device": "cpu"
+  }
+}

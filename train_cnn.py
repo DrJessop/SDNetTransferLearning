@@ -32,15 +32,19 @@ if __name__ == "__main__":
     p_images = torch.load(conf.images_loader).to(conf.device)
     p_labels = torch.load(conf.labels_loader).to(conf.device).long()
 
-    hold_out = conf.hold_out_last
+    if conf.normalize:
+        for idx in range(p_images.shape[0]):
+            normalize(p_images[idx])
 
-    p_images_hold_out = p_images[-(hold_out*conf.num_crops):]
-    p_labels_hold_out = p_labels[-(hold_out*conf.num_crops):]
-    p_images = p_images[:-(hold_out*conf.num_crops)]
-    p_labels = p_labels[:-(hold_out*conf.num_crops)]
+    hold_out = conf.hold_out_first
 
-    for idx in range(p_images.shape[0]):
-        normalize(p_images[idx])
+    p_images_hold_out = p_images[:(hold_out*conf.num_crops)]
+    p_labels_hold_out = p_labels[:(hold_out*conf.num_crops)]
+    p_images = p_images[(hold_out*conf.num_crops):]
+    p_labels = p_labels[(hold_out*conf.num_crops):]
+
+    torch.save(p_images_hold_out, conf.hold_out_images_dest)
+    torch.save(p_labels_hold_out, conf.hold_out_labels_dest)
 
     n_train = int((conf.split_portion*len(p_images))//conf.num_crops)
     n_range = p_images.shape[0]//conf.num_crops
@@ -61,7 +65,26 @@ if __name__ == "__main__":
     if conf.model_src != "":
         cnn.load_state_dict(torch.load(conf.model_src))
 
-    train((train_loader, val_loader), p_images, p_labels, cnn, conf.model_dest, conf.epochs, conf.lr, conf.weight_decay,
-          conf.save_model)
-    torch.save(p_images_hold_out, conf.hold_out_images_dest)
-    torch.save(p_labels_hold_out, conf.hold_out_labels_dest)
+    if conf.transfer_dest == "":
+        train((train_loader, val_loader), p_images, p_labels, cnn, conf.model_dest, conf.epochs, conf.lr, conf.weight_decay,
+              conf.save_model)
+    else:
+        train_set = p_images_hold_out[:p_images_hold_out.shape[0]//2]
+        test_set = p_images_hold_out[p_images_hold_out.shape[0]//2:]
+
+        train_labels = p_labels_hold_out[:p_labels_hold_out.shape[0]//2]
+        test_labels = p_labels_hold_out[p_labels_hold_out.shape[0]//2:]
+
+        ct = 0
+        for child in cnn.children():
+            ct += 1
+            if ct < 4:
+                for param in child.parameters():
+                    param.requires_grad = False
+
+        train_loader = DataLoader(range(len(train_set)), batch_size=4, num_workers=conf.num_workers, shuffle=shuffle)
+        test_loader = DataLoader(range(len(train_set), len(train_set) + len(test_set)), batch_size=4,
+                                 num_workers=conf.num_workers)
+        train((train_loader, test_loader), p_images_hold_out, p_labels_hold_out, cnn,
+              conf.transfer_dest, conf.epochs, conf.lr, conf.weight_decay, conf.save_model)
+

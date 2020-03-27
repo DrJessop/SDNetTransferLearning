@@ -3,18 +3,18 @@
   "version": "1.0.0",
   "params": {
     "shape": [3, 64, 64],
-    "hold_out_last": 37,
+    "hold_out_first": 34,
     "num_crops": 20,
     "num_wanted": 20,
     "num_channels": 1,
     "seed": 1,
     "model_src": "",
     "model_dest": "pretrained_models/cnn_t2.pt",
-    "hold_out_images_dest": "experiments/hold_out_images.pt",
-    "hold_out_labels_dest": "experiments/hold_out_labels.pt",
-    "images_loader": "../merged_data/t2_crops/combined_loader/crop_images.pt",
-    "labels_loader": "../merged_data/t2_crops/combined_loader/crop_labels.pt",
-    "epochs": 200,
+    "hold_out_images_dest": "experiments/t2/hold_out_images.pt",
+    "hold_out_labels_dest": "experiments/t2/hold_out_labels.pt",
+    "images_loader": "../merged_data/t2_crops/combined_loader/crop_images_eq.pt",
+    "labels_loader": "../merged_data/t2_crops/combined_loader/crop_labels_eq.pt",
+    "epochs": 300,
     "batch_size": 10,
     "lr": 0.0001,
     "weight_decay": 0.01,
@@ -22,6 +22,8 @@
     "device": "cuda:1",
     "num_workers": 0,
     "save_model": true,
-    "shuffle": true
+    "shuffle": false,
+    "normalize": true,
+    "transfer_dest": ""
   }
 }
